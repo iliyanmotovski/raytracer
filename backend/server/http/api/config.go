@@ -8,6 +8,7 @@ import (
 	"github.com/iliyanmotovski/raytracer/backend/vector"
 )
 
+// CreateConfiguration is an http handler used for creating a scene configuration
 func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadResponseChanFactory) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dto := new(configDTO)
@@ -17,7 +18,9 @@ func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadRe
 			return
 		}
 
+		// send the config through the send chan to be processed and new scene generated
 		cc <- &backend.ConfigChan{Ctx: r.Context(), Config: dto.adapt(), ResponseChan: backend.CreateConfigHandler}
+		// receive the config processing response through the receive chan
 		created := <-srrc[backend.CreateConfigHandler]
 		if created.Err != nil {
 			json.NewEncoder(w).Encode(created.Err)
@@ -25,8 +28,8 @@ func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadRe
 		}
 
 		resp := &configDTO{
-			Light:    &XY{X: created.Scene.Light.X, Y: created.Scene.Light.Y},
-			Scene:    &XY{X: created.Scene.Width, Y: created.Scene.Height},
+			Light:    &xy{X: created.Scene.Light.X, Y: created.Scene.Light.Y},
+			Scene:    &xy{X: created.Scene.Width, Y: created.Scene.Height},
 			Polygons: created.Scene.Polygons,
 		}
 
@@ -36,7 +39,7 @@ func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadRe
 }
 
 type configDTO struct {
-	Light, Scene *XY
+	Light, Scene *xy
 	Polygons     backend.Polygons
 }
 
@@ -50,18 +53,18 @@ func (c *configDTO) adapt() *backend.Config {
 
 func (c *configDTO) MarshalJSON() ([]byte, error) {
 	dto := &struct {
-		Light, Scene *XY
-		Polygons     [][]*XY
+		Light, Scene *xy
+		Polygons     [][]*xy
 	}{}
 
 	dto.Light = c.Light
 	dto.Scene = c.Scene
-	dto.Polygons = make([][]*XY, len(c.Polygons))
+	dto.Polygons = make([][]*xy, len(c.Polygons))
 
 	for i, polygon := range c.Polygons {
-		poly := make([]*XY, len(polygon.Loop))
+		poly := make([]*xy, len(polygon.Loop))
 		for j, vertice := range polygon.Loop {
-			poly[j] = &XY{X: vertice.X, Y: vertice.Y}
+			poly[j] = &xy{X: vertice.X, Y: vertice.Y}
 		}
 
 		dto.Polygons[i] = poly
@@ -72,8 +75,8 @@ func (c *configDTO) MarshalJSON() ([]byte, error) {
 
 func (c *configDTO) UnmarshalJSON(b []byte) error {
 	dto := &struct {
-		Light, Scene *XY
-		Polygons     [][]*XY
+		Light, Scene *xy
+		Polygons     [][]*xy
 	}{}
 
 	if err := json.Unmarshal(b, dto); err != nil {
@@ -99,6 +102,6 @@ func (c *configDTO) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type XY struct {
+type xy struct {
 	X, Y float64
 }

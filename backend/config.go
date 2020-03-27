@@ -11,29 +11,35 @@ import (
 	"github.com/iliyanmotovski/raytracer/backend/vector"
 )
 
+// ConfigRepository is an abstraction over some repository
 type ConfigRepository interface {
 	Get(context.Context) (*Config, error)
 	Upsert(context.Context, *Config) (*Config, error)
 }
 
+// Config represents the scene configuration
 type Config struct {
 	Light    *vector.Vector
 	Scene    *vector.Vector
 	Polygons Polygons
 }
 
+// Configurator is an abstraction over some configurator - txt file, yaml etc...
 type Configurator interface {
 	Parse(ctx context.Context, configRepo ConfigRepository) (*Config, error)
 }
 
+// textFileConfigurator is a concrete implementation of txt file configurator
 type textFileConfigurator struct {
 	path string
 }
 
+// NewTextFileConfigurator creates new textFileConfigurator
 func NewTextFileConfigurator(path string) Configurator {
 	return &textFileConfigurator{path: path}
 }
 
+// Parse reads the txt file and populates the Config
 func (t *textFileConfigurator) Parse(ctx context.Context, configRepo ConfigRepository) (*Config, error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -127,6 +133,7 @@ func (t *textFileConfigurator) Parse(ctx context.Context, configRepo ConfigRepos
 	return persisted, nil
 }
 
+// parses the first and second lines of the config as they are identical
 func parseFirstAndSecond(line string) (float64, float64, error) {
 	x, y, err := 0.0, 0.0, error(nil)
 	scene := strings.Split(line, " ")

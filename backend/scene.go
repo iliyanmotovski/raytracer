@@ -9,11 +9,13 @@ import (
 	"github.com/iliyanmotovski/raytracer/backend/vector"
 )
 
+// SceneRepository is an abstraction over some repository
 type SceneRepository interface {
 	Get(context.Context) (*Scene, error)
 	Upsert(context.Context, *Scene) (*Scene, error)
 }
 
+// Scene represents the state of the scene
 type Scene struct {
 	Width, Height, LitArea float64
 	Light                  *vector.Vector
@@ -22,6 +24,7 @@ type Scene struct {
 	Boundaries             Boundaries
 }
 
+// NewScene creates a new Scene with the 4 basic boundaries - up, right, down, left in this order
 func NewScene(width, height float64, light *vector.Vector, polygons Polygons) *Scene {
 	b := make(Boundaries, 4)
 	b[0] = &Boundary{vector.Edge{A: &vector.Vector{0, 0}, B: &vector.Vector{width, 0}}}
@@ -32,6 +35,7 @@ func NewScene(width, height float64, light *vector.Vector, polygons Polygons) *S
 	return &Scene{Width: width, Height: height, Light: light, Boundaries: b, Polygons: polygons}
 }
 
+// Load reloads the scene with the new configuration and persists it
 func (s *Scene) Load(ctx context.Context, repo SceneRepository) (*Scene, error) {
 	triangles, litArea, err := s.Process()
 	if err != nil {
@@ -58,6 +62,9 @@ func (s *Scene) Load(ctx context.Context, repo SceneRepository) (*Scene, error) 
 	return persisted, nil
 }
 
+// Process creates a new particle and casts all rays, returns the triangles
+// which represent the lit area, the lit area's area in % of the whole scene
+// and an error if any. It Validates the polygons as well
 func (s *Scene) Process() (Triangles, float64, error) {
 	for _, polygon := range s.Polygons {
 		s.Boundaries = append(s.Boundaries, polygon.GetBoundaries()...)
@@ -77,12 +84,17 @@ func (s *Scene) Process() (Triangles, float64, error) {
 	return triangles, litAreaPercentage, nil
 }
 
+// SceneReloadDaemon represents a daemon which listens for new scene configuration
+// over the provided channel and generates the new scene according the config,
+// then sends back the newly generated scene and an error of any on the provided
+// return channel
 type SceneReloadDaemon struct {
 	sceneRepo               SceneRepository
 	configChan              chan *ConfigChan
 	sceneReloadResponseChan SceneReloadResponseChanFactory
 }
 
+// NewSceneReloadDaemon creates new SceneReloadDaemon
 func NewSceneReloadDaemon(sceneRepo SceneRepository, cc chan *ConfigChan, srrc SceneReloadResponseChanFactory) *SceneReloadDaemon {
 	return &SceneReloadDaemon{
 		sceneRepo:               sceneRepo,
@@ -91,6 +103,7 @@ func NewSceneReloadDaemon(sceneRepo SceneRepository, cc chan *ConfigChan, srrc S
 	}
 }
 
+// Start starts the scene reload daemon with provided workers
 func (d *SceneReloadDaemon) Start(workers int) {
 	for i := 0; i < workers; i++ {
 		go func() {
@@ -113,15 +126,20 @@ func (d *SceneReloadDaemon) Start(workers int) {
 	}
 }
 
+// ConfigChan represents the data sent through the
+// actual config chan
 type ConfigChan struct {
 	Ctx          context.Context
 	Config       *Config
 	ResponseChan string
 }
 
+// SceneReloadResponse represents the response sent back from the daemon
 type SceneReloadResponse struct {
 	Scene *Scene
 	Err   error
 }
 
+// SceneReloadResponseChanFactory represents a factory of all return channels
+// which the daemon picks with key ResponseChan field from ConfigChan struct
 type SceneReloadResponseChanFactory map[string]chan *SceneReloadResponse

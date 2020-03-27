@@ -7,11 +7,15 @@ import (
 	"github.com/iliyanmotovski/raytracer/backend/vector"
 )
 
+// Particle represents a point from where rays of "light" emit
 type Particle struct {
 	Pos  *vector.Vector
 	Rays Rays
 }
 
+// Creates new Particle with given position and sets directory of 8 base rays
+// to the 4 corners of the screen, 2 for each corner, with a very small
+// offset to the left and right of the center of the corner
 func NewParticle(x, y float64, sceneEdgesBounds Boundaries) *Particle {
 	baseRays := make(Rays, 8)
 
@@ -39,8 +43,12 @@ func NewParticle(x, y float64, sceneEdgesBounds Boundaries) *Particle {
 	return &Particle{Pos: &vector.Vector{X: x, Y: y}, Rays: baseRays}
 }
 
+// Process casts the rays
 func (p *Particle) Process(boundaries Boundaries, polygons Polygons) Triangles {
+	// Adds 2 rays for each polygon vertice and sets their direction with a very
+	// small offset to the left and right of the vertice
 	p.SetRaysDirToPolyVertices(polygons)
+	// sorts the rays clockwise by angle
 	p.SortRaysClockwise()
 
 	edges := vector.Loop{}
@@ -49,8 +57,11 @@ func (p *Particle) Process(boundaries Boundaries, polygons Polygons) Triangles {
 		lastDistance := math.Inf(1)
 
 		for _, boundary := range boundaries {
+			// casts the ray against each boundary
 			intersection, ok := ray.Cast(boundary)
 			if ok {
+				// records the closest point of intersection
+				// to the starting point of the ray
 				distance := ray.A.Distance(*intersection)
 				if distance < lastDistance {
 					lastDistance = distance
@@ -67,6 +78,9 @@ func (p *Particle) Process(boundaries Boundaries, polygons Polygons) Triangles {
 	return NewClockwiseTriangleFan(p.Pos, edges)
 }
 
+// SetRaysDirToPolyVertices adds 2 rays for each polygon vertice
+// and sets their direction with a very small offset to the left
+//and right of the vertice
 func (p *Particle) SetRaysDirToPolyVertices(polygons Polygons) {
 	for _, polygon := range polygons {
 		for _, vertex := range polygon.Loop {
@@ -80,6 +94,7 @@ func (p *Particle) SetRaysDirToPolyVertices(polygons Polygons) {
 	}
 }
 
+// SortRaysClockwise sorts the rays clockwise by angle
 func (p *Particle) SortRaysClockwise() {
 	sort.Slice(p.Rays, func(i, j int) bool {
 		return p.Rays[i].B.Degrees() < p.Rays[j].B.Degrees()

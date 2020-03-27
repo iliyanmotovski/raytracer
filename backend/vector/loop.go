@@ -1,7 +1,11 @@
 package vector
 
+// Loop represents a an array of vectors which form a "loop"
 type Loop Vectors
 
+// IsPointContainedInLoop returns whether the provided point is contained inside the loop
+// it takes closeLoop argument to know if the loop is closed or not (the last point has the
+// same coordinates as the first)
 func (l Loop) IsPointContainedInLoop(p *Vector, closeLoop bool) bool {
 	if len(l) == 0 {
 		return false

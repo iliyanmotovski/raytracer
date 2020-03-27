@@ -1,9 +1,12 @@
 package vector
 
+// Edge represents a line which sits on vectors A and B
 type Edge struct {
 	A, B *Vector
 }
 
+// Intersection checks whether two edges intersect and if they do,
+// returns the point of intersection and a corresponding boolean
 func (e1 *Edge) Intersection(e2 *Edge) (*Vector, bool) {
 	x1 := e2.A.X
 	y1 := e2.A.Y
