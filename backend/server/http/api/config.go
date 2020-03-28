@@ -14,6 +14,7 @@ func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadRe
 		dto := new(configDTO)
 
 		if err := json.NewDecoder(r.Body).Decode(dto); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(err)
 			return
 		}
@@ -23,6 +24,7 @@ func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadRe
 		// receive the config processing response through the receive chan
 		created := <-srrc[backend.CreateConfigHandler]
 		if created.Err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(created.Err)
 			return
 		}
@@ -33,6 +35,7 @@ func CreateConfiguration(cc chan *backend.ConfigChan, srrc backend.SceneReloadRe
 			Polygons: created.Scene.Polygons,
 		}
 
+		w.WriteHeader(http.StatusCreated)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}

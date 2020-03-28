@@ -13,7 +13,9 @@ func GetScene(sceneRepo backend.SceneRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		scene, err := sceneRepo.Get(r.Context())
 		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(err)
+			return
 		}
 
 		resp := &sceneDTO{
@@ -25,6 +27,7 @@ func GetScene(sceneRepo backend.SceneRepository) http.HandlerFunc {
 			Triangles: scene.Triangles,
 		}
 
+		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}

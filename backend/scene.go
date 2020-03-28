@@ -25,14 +25,17 @@ type Scene struct {
 }
 
 // NewScene creates a new Scene with the 4 basic boundaries - up, right, down, left in this order
-func NewScene(width, height float64, light *vector.Vector, polygons Polygons) *Scene {
+func NewScene(config *Config) *Scene {
+	width := config.Scene.X
+	height := config.Scene.Y
+
 	b := make(Boundaries, 4)
 	b[0] = &Boundary{vector.Edge{A: &vector.Vector{0, 0}, B: &vector.Vector{width, 0}}}
 	b[1] = &Boundary{vector.Edge{A: &vector.Vector{width, 0}, B: &vector.Vector{width, height}}}
 	b[2] = &Boundary{vector.Edge{A: &vector.Vector{width, height}, B: &vector.Vector{0, height}}}
 	b[3] = &Boundary{vector.Edge{A: &vector.Vector{0, height}, B: &vector.Vector{0, 0}}}
 
-	return &Scene{Width: width, Height: height, Light: light, Boundaries: b, Polygons: polygons}
+	return &Scene{Width: width, Height: height, Light: config.Light, Boundaries: b, Polygons: config.Polygons}
 }
 
 // Load reloads the scene with the new configuration and persists it
@@ -110,7 +113,7 @@ func (d *SceneReloadDaemon) Start(workers int) {
 			for c := range d.configChan {
 				start := time.Now()
 
-				scene := NewScene(c.Config.Scene.X, c.Config.Scene.Y, c.Config.Light, c.Config.Polygons)
+				scene := NewScene(c.Config)
 				loaded, err := scene.Load(c.Ctx, d.sceneRepo)
 
 				srrc := d.sceneReloadResponseChan[c.ResponseChan]
