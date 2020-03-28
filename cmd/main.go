@@ -88,7 +88,7 @@ func main() {
 		case s := <-sigchan:
 			switch s {
 			case syscall.SIGHUP:
-				log.Println("Reloading configuration")
+				log.Println("reloading configuration")
 				c, err = configurator.Parse(ctx, configRepo)
 				if err != nil {
 					log.Println(err)
